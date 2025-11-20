@@ -5,6 +5,9 @@
 #include <random>
 #include <set>
 #include <vector>
+#include <cassert>
+#include <unistd.h>
+
 
 using namespace std;
 using ll = long long;
@@ -111,6 +114,141 @@ Solution Construcao(){
     return s;
 }
 
+// // estrutura de vizinhança swap
+bool bestImprovementSwap(Solution &s){
+    double bestDelta = 0;
+    int best_i, best_j;
+
+    for (int i = 1; i < s.sequence.size() - 1; i++){
+        int vi = s.sequence[i];
+        int vi_next = s.sequence[i+1];
+        int vi_prev = s.sequence[i-1];
+
+        for (int j = i + 1; j < s.sequence.size() - 1; j++){
+            int vj = s.sequence[j];
+            int vj_next = s.sequence[j+1];
+            int vj_prev = s.sequence[j-1];
+            double delta = 0;
+
+            // corner case (adjacentes)
+            if (i + 1 == j){
+                delta = - g[vi_prev][vi] - g[vi][vj] - g[vj][vj_next] 
+                        + g[vi_prev][vj] + g[vj][vi] + g[vi][vj_next];
+            }
+            else {
+                delta = - g[vi_prev][vi] - g[vi][vi_next] - g[vj_prev][vj] - g[vj][vj_next]
+                        + g[vi_prev][vj] + g[vi][vj_next] + g[vj_prev][vi] + g[vj][vi_next];
+                
+            }
+
+            if (delta < bestDelta){
+                bestDelta = delta;
+                best_i = i;
+                best_j = j;
+            }
+        }
+    }
+
+    if (bestDelta < 0){
+        swap(s.sequence[best_i], s.sequence[best_j]);
+        s.cost = s.cost + bestDelta;
+        return true;
+    }
+
+    return false;
+}
+
+bool bestImprovement20pt(Solution &s){
+    double bestDelta = 0;
+    int best_i, best_j;
+
+    for (int i = 0; i < s.sequence.size() - 3; i++){
+        int cur = s.sequence[i];
+        int next = s.sequence[i+1];
+        
+        for (int j = i + 3; j < s.sequence.size(); j++){
+            int prev_last = s.sequence[j-1];
+            int last = s.sequence[j];
+
+            double delta = - g[cur][next] - g[prev_last][last] + g[cur][prev_last] + g[next][last];
+
+            if (delta < bestDelta){
+                bestDelta = delta;
+                best_i = i;
+                best_j = j;
+            }
+        }
+    }
+
+    if (bestDelta < 0){
+        reverse(s.sequence.begin() + best_i + 1, s.sequence.begin() + best_j);
+        s.cost = s.cost + bestDelta;
+        return true;
+    }
+
+    return false;
+}
+
+bool bestImprovementOrOpt (Solution &s, int tipo){
+    // retiramos [1, 2, 3] blocos e colocamos em outra posição
+
+    double bestDelta = 0;
+    int best_i, best_j;
+
+    for (int i = 0; i < s.sequence.size(); i++){
+        int cur = s.sequence[i];
+        int next = s.sequence[i+1];
+        
+        
+    }
+
+    if (bestDelta < 0){
+
+        s.cost = s.cost + bestDelta;
+        return true;
+    }
+
+    return false;
+}
+
+void BuscaLocal (Solution &s){
+    // vector<int> NL = {1, 2, 3, 4, 5};
+    vector<int> NL = {1, 2};
+    bool improved = false;
+
+    while (!NL.empty()){
+        uniform_int_distribution<int> aleat(0, NL.size()-1);
+
+        int escolhido = aleat(rng);
+
+        switch(NL[escolhido]){
+            case 1:
+                improved = bestImprovementSwap(s);
+                break;
+            case 2:
+                improved = bestImprovement20pt(s);
+                break;
+            case 3:
+                improved = bestImprovementOrOpt(s, 1); // Reinsertion
+                break;
+            case 4:
+                improved = bestImprovementOrOpt(s, 2); // Or-opt2
+                break;
+            case 5:
+                improved = bestImprovementOrOpt(s, 3); // Or-opt3
+                break;
+        }
+
+        if (improved){
+            // cout << "entrou" << "\n";
+            // NL = {1, 2, 3, 4, 5};
+            NL = {1, 2};
+        }
+        else {
+            NL.erase(NL.begin() + escolhido);
+        }
+    }
+}
 
 Solution ILS(int maxIter, int maxIterIls){
     Solution bestOfAll;
@@ -120,20 +258,20 @@ Solution ILS(int maxIter, int maxIterIls){
         Solution s = Construcao();
         Solution best = s;
 
-        // int iterILS = 0;
+        int iterILS = 0;
 
-        // while(iterIls <= maxIterIls){
-        //     BuscaLocal (&s);
+        while(iterILS <= maxIterIls){
+            BuscaLocal(s);
 
-        //     if (s.cost < best.cost){
-        //         best = s;
-        //         iterIls = 0;
-        //     }
+            if (s.cost < best.cost){
+                best = s;
+                iterILS = 0;
+            }
             
         //     s = Perturbacao(best);
 
-        //     iterIls++;
-        // }
+            iterILS++;
+        }
         
         if (best.cost < bestOfAll.cost){
             bestOfAll = best;
