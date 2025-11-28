@@ -8,14 +8,11 @@
 #include <cassert>
 #include <unistd.h>
 
-
 using namespace std;
-using ll = long long;
 
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const int INF = (int)1e9;
-const ll LINF = (ll)1e18;
 
 struct Solution {
     vector<int> sequence;
@@ -138,7 +135,6 @@ bool bestImprovementSwap(Solution &s){
             else {
                 delta = - g[vi_prev][vi] - g[vi][vi_next] - g[vj_prev][vj] - g[vj][vj_next]
                         + g[vi_prev][vj] + g[vi][vj_next] + g[vj_prev][vi] + g[vj][vi_next];
-                
             }
 
             if (delta < bestDelta){
@@ -189,21 +185,47 @@ bool bestImprovement20pt(Solution &s){
     return false;
 }
 
-bool bestImprovementOrOpt (Solution &s, int tipo){
-    // retiramos [1, 2, 3] blocos e colocamos em outra posição
+bool bestImprovementOrOpt (Solution &s, int bloco){
 
     double bestDelta = 0;
     int best_i, best_j;
 
-    for (int i = 0; i < s.sequence.size(); i++){
-        int cur = s.sequence[i];
-        int next = s.sequence[i+1];
-        
-        
+    for (int i = 1; i < s.sequence.size() - bloco; i++){
+        int atual_i = s.sequence[i];
+        int bloco_atual = s.sequence[i + bloco - 1];
+        int prox_i = s.sequence[i + bloco];
+        int ant_i = s.sequence[i - 1];
+
+        for (int j = 0; j < s.sequence.size() - 1; j++){
+            if (j + 1 == i) {
+                j += bloco;
+                continue;
+            }
+            
+            int j_atual = s.sequence[j];
+            int j_prox = s.sequence[j + 1];
+
+            double delta = - g[j_atual][j_prox] - g[ant_i][atual_i] - g[bloco_atual][prox_i]
+                           + g[j_atual][atual_i] + g[bloco_atual][j_prox] + g[ant_i][prox_i];
+
+            if (delta < bestDelta){
+                bestDelta = delta;
+                best_i = i;
+                best_j = j;
+            }
+        }
     }
 
     if (bestDelta < 0){
 
+        if (best_i > best_j){
+            rotate(s.sequence.begin() + best_j + 1, s.sequence.begin() + best_i, s.sequence.begin() + best_i + bloco);
+        }
+        else if (best_i < best_j){
+            rotate(s.sequence.begin() + best_i, s.sequence.begin() + best_i + bloco, s.sequence.begin() + best_j + 1);
+        }
+
+        
         s.cost = s.cost + bestDelta;
         return true;
     }
@@ -212,8 +234,8 @@ bool bestImprovementOrOpt (Solution &s, int tipo){
 }
 
 void BuscaLocal (Solution &s){
-    // vector<int> NL = {1, 2, 3, 4, 5};
-    vector<int> NL = {1, 2};
+    vector<int> NL = {1, 2, 3, 4, 5};
+    // vector<int> NL = {3, 4, 5};
     bool improved = false;
 
     while (!NL.empty()){
@@ -229,20 +251,18 @@ void BuscaLocal (Solution &s){
                 improved = bestImprovement20pt(s);
                 break;
             case 3:
-                improved = bestImprovementOrOpt(s, 1); // Reinsertion
+                improved = bestImprovementOrOpt(s, 1);
                 break;
             case 4:
-                improved = bestImprovementOrOpt(s, 2); // Or-opt2
+                improved = bestImprovementOrOpt(s, 2);
                 break;
             case 5:
-                improved = bestImprovementOrOpt(s, 3); // Or-opt3
+                improved = bestImprovementOrOpt(s, 3);
                 break;
         }
 
         if (improved){
-            // cout << "entrou" << "\n";
-            // NL = {1, 2, 3, 4, 5};
-            NL = {1, 2};
+            NL = {1, 2, 3, 4, 5};
         }
         else {
             NL.erase(NL.begin() + escolhido);
