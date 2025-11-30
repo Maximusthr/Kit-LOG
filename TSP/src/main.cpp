@@ -20,69 +20,69 @@ struct Solution {
 };
 
 struct InsertionInfo{
-    int noInserido;
-    int arestaRemovida;
-    double custo;
+    int InsertNode;
+    int RemovedEdge;
+    double cost;
 };
 
 int n;
 vector<vector<double>> g;
 
-vector<InsertionInfo> calcularCustoInsercao(Solution &s, set<int> &CL){
-    vector<InsertionInfo> custoInsercao((s.sequence.size() - 1) * CL.size());
+vector<InsertionInfo> InsertionCost(Solution &s, set<int> &CL){
+    vector<InsertionInfo> cost_Insertion((s.sequence.size() - 1) * CL.size());
 
     int l = 0;
     for (int a = 0; a < s.sequence.size() - 1; a++){
         int i = s.sequence[a];
         int j = s.sequence[a+1];
         for (auto k : CL){
-            custoInsercao[l].custo = g[i][k] + g[j][k] - g[i][j];
-            custoInsercao[l].noInserido = k;
-            custoInsercao[l].arestaRemovida = a;
+            cost_Insertion[l].cost = g[i][k] + g[j][k] - g[i][j];
+            cost_Insertion[l].InsertNode = k;
+            cost_Insertion[l].RemovedEdge = a;
             l++;
         }
     }
 
-    return custoInsercao;
+    return cost_Insertion;
 }
 
-void escolher3NosAleatorios(Solution &s, vector<bool> &elementos){
+void chooseRandomNodes(Solution &s, vector<bool> &elements){
     uniform_int_distribution<int> dist(2, n);
 
-    int achou = 0;
-    while (achou != 3){
-        int valor = dist(rng);
+    int found = 0;
+    while (found < 3){
+        int value = dist(rng);
 
-        if (!elementos[valor]){
-            achou++;
-            elementos[valor] = true;
-            s.sequence.push_back(valor);
+        if (!elements[value]){
+            found++;
+            elements[value] = true;
+            s.sequence.push_back(value);
         }
     }
 }
 
-void nosRestantes(set<int> &CL, vector<bool> &elementos){
+void RemainingNodes(set<int> &CL, vector<bool> &elements){
     for (int i = 1; i <= n; i++){
-        if (!elementos[i]) CL.insert(i);
+        if (!elements[i]) CL.insert(i);
     }
 }
 
-void inserirNaSolucao(Solution &s, vector<InsertionInfo> &no, int selecionado){
-    s.cost += no[selecionado].custo;
+void inserirNaSolucao(Solution &s, vector<InsertionInfo> &node, int selected){
+    s.cost += node[selected].cost;
     
-    s.sequence.insert(s.sequence.begin() + no[selecionado].arestaRemovida + 1, no[selecionado].noInserido);
+    s.sequence.insert(s.sequence.begin() + node[selected].RemovedEdge + 1, node[selected].InsertNode);
 }
 
-Solution Construcao(){
+Solution Construction(){
     Solution s;
     
     s.cost = 0;
 
-    vector<bool> elementos(n+1);
-    elementos[1] = true;
+    vector<bool> elements(n+1);
+    elements[1] = true;
     
     s.sequence.push_back(1);
-    escolher3NosAleatorios(s, elementos);
+    chooseRandomNodes(s, elements);
     s.sequence.push_back(1);
 
     for (int i = 0; i < s.sequence.size() - 1; i++){
@@ -90,28 +90,27 @@ Solution Construcao(){
     }
     
     set<int> CL;
-    nosRestantes(CL, elementos);
+    RemainingNodes(CL, elements);
    
     while (!CL.empty()){
-        vector<InsertionInfo> custoInsercao = calcularCustoInsercao(s, CL);
+        vector<InsertionInfo> cost_Insertion = InsertionCost(s, CL);
 
-        sort(custoInsercao.begin(), custoInsercao.end(), [&](InsertionInfo x, InsertionInfo y){
-            return x.custo < y.custo;
+        sort(cost_Insertion.begin(), cost_Insertion.end(), [&](InsertionInfo x, InsertionInfo y){
+            return x.cost < y.cost;
         });
 
         double alpha = (double) rand() / RAND_MAX;
 
-        int selecionado = rand() % ((int) ceil (alpha * (custoInsercao.size() - 1)));
+        int selected = rand() % ((int) ceil (alpha * (cost_Insertion.size() - 1)));
 
-        inserirNaSolucao(s, custoInsercao, selecionado);
+        inserirNaSolucao(s, cost_Insertion, selected);
 
-        CL.erase(custoInsercao[selecionado].noInserido);
+        CL.erase(cost_Insertion[selected].InsertNode);
     }
 
     return s;
 }
 
-// // estrutura de vizinhança swap
 bool bestImprovementSwap(Solution &s){
     double bestDelta = 0;
     int best_i, best_j;
@@ -127,7 +126,7 @@ bool bestImprovementSwap(Solution &s){
             int vj_prev = s.sequence[j-1];
             double delta = 0;
 
-            // corner case (adjacentes)
+            // corner case
             if (i + 1 == j){
                 delta = - g[vi_prev][vi] - g[vi][vj] - g[vj][vj_next] 
                         + g[vi_prev][vj] + g[vj][vi] + g[vi][vj_next];
@@ -185,28 +184,28 @@ bool bestImprovement20pt(Solution &s){
     return false;
 }
 
-bool bestImprovementOrOpt (Solution &s, int bloco){
+bool bestImprovementOrOpt (Solution &s, int block){
 
     double bestDelta = 0;
     int best_i, best_j;
 
-    for (int i = 1; i < s.sequence.size() - bloco; i++){
-        int atual_i = s.sequence[i];
-        int bloco_atual = s.sequence[i + bloco - 1];
-        int prox_i = s.sequence[i + bloco];
-        int ant_i = s.sequence[i - 1];
+    for (int i = 1; i < s.sequence.size() - block; i++){
+        int cur_i = s.sequence[i];
+        int block_i = s.sequence[i + block - 1];
+        int next_i = s.sequence[i + block];
+        int prev_i = s.sequence[i - 1];
 
         for (int j = 0; j < s.sequence.size() - 1; j++){
             if (j + 1 == i) {
-                j += bloco;
+                j += block;
                 continue;
             }
             
-            int j_atual = s.sequence[j];
-            int j_prox = s.sequence[j + 1];
+            int cur_j = s.sequence[j];
+            int next_j = s.sequence[j + 1];
 
-            double delta = - g[j_atual][j_prox] - g[ant_i][atual_i] - g[bloco_atual][prox_i]
-                           + g[j_atual][atual_i] + g[bloco_atual][j_prox] + g[ant_i][prox_i];
+            double delta = - g[cur_j][next_j] - g[prev_i][cur_i] - g[block_i][next_i]
+                           + g[cur_j][cur_i] + g[block_i][next_j] + g[prev_i][next_i];
 
             if (delta < bestDelta){
                 bestDelta = delta;
@@ -219,10 +218,10 @@ bool bestImprovementOrOpt (Solution &s, int bloco){
     if (bestDelta < 0){
 
         if (best_i > best_j){
-            rotate(s.sequence.begin() + best_j + 1, s.sequence.begin() + best_i, s.sequence.begin() + best_i + bloco);
+            rotate(s.sequence.begin() + best_j + 1, s.sequence.begin() + best_i, s.sequence.begin() + best_i + block);
         }
         else if (best_i < best_j){
-            rotate(s.sequence.begin() + best_i, s.sequence.begin() + best_i + bloco, s.sequence.begin() + best_j + 1);
+            rotate(s.sequence.begin() + best_i, s.sequence.begin() + best_i + block, s.sequence.begin() + best_j + 1);
         }
 
         
@@ -233,16 +232,16 @@ bool bestImprovementOrOpt (Solution &s, int bloco){
     return false;
 }
 
-void BuscaLocal (Solution &s){
+void LocalSearch (Solution &s){
     vector<int> NL = {1, 2, 3, 4, 5};
     bool improved = false;
 
     while (!NL.empty()){
-        uniform_int_distribution<int> aleat(0, NL.size()-1);
+        uniform_int_distribution<int> random(0, NL.size()-1);
 
-        int escolhido = aleat(rng);
+        int choice = random(rng);
 
-        switch(NL[escolhido]){
+        switch(NL[choice]){
             case 1:
                 improved = bestImprovementSwap(s);
                 break;
@@ -264,37 +263,34 @@ void BuscaLocal (Solution &s){
             NL = {1, 2, 3, 4, 5};
         }
         else {
-            NL.erase(NL.begin() + escolhido);
+            NL.erase(NL.begin() + choice);
         }
     }
 }
 
-Solution Perturbacao(Solution SOL){
+Solution Pertubation(Solution SOL){
     
-    // cout << "Entrou" << "\n";
-
-    int tamanho = SOL.sequence.size();
+    int sizes = SOL.sequence.size();
     
-    int inicio = 2;
-    int fim = (tamanho + 9)/10;
+    int beg = 2;
+    int end = (sizes + 9)/10;
     
-    auto Intersec = [&](int x1, int y1, int x2, int y2) -> bool {
-        // true = tem interseção
+    auto Intersect = [&](int x1, int y1, int x2, int y2) -> bool {
+        // true = intersect
         return ((y2 >= x1 && y2 <= y1) || (y1 >= x2 && y1 <= y2));
-        // return max(x1, x2) <= min(y1, y2);
     };
     
     pair<int, int> seg_1, seg_2;
     
     do {
-        uniform_int_distribution<int> aleat_1(inicio, fim);
-        uniform_int_distribution<int> aleat_2(inicio, fim);
+        uniform_int_distribution<int> random_1(beg, end);
+        uniform_int_distribution<int> random_2(beg, end);
         
-        int v1 = aleat_1(rng);
-        int v2 = aleat_2(rng);
+        int v1 = random_1(rng);
+        int v2 = random_2(rng);
 
-        uniform_int_distribution<int> SEG_ELEM_1(1, tamanho - v1 - 2);
-        uniform_int_distribution<int> SEG_ELEM_2(1, tamanho - v2 - 2);
+        uniform_int_distribution<int> SEG_ELEM_1(1, sizes - v1 - 2);
+        uniform_int_distribution<int> SEG_ELEM_2(1, sizes - v2 - 2);
 
         seg_1.first = SEG_ELEM_1(rng);
         seg_1.second = seg_1.first + v1 - 1;
@@ -303,66 +299,60 @@ Solution Perturbacao(Solution SOL){
         seg_2.first = SEG_ELEM_2(rng);
         seg_2.second = seg_2.first + v2 - 1;
 
-    } while (Intersec(seg_1.first, seg_1.second, seg_2.first, seg_2.second));
+    } while (Intersect(seg_1.first, seg_1.second, seg_2.first, seg_2.second));
 
     Solution aux = SOL;
     
-    // cout << "Anterior: " << aux.cost << "\n";
-    
-    // if (seg_1.second > seg_2.second) swap(seg_1, seg_2);
     if (seg_1.first > seg_2.first) swap(seg_1, seg_2);
 
+    int prev_i = aux.sequence[seg_1.first - 1];
+    int cur_i_left = aux.sequence[seg_1.first];
+    int cur_i_right = aux.sequence[seg_1.second];
+    int next_i = aux.sequence[seg_1.second + 1];
 
-    int i_atual_ant = aux.sequence[seg_1.first - 1];
-    int i_atual_L = aux.sequence[seg_1.first];
-    int i_atual_R = aux.sequence[seg_1.second];
-    int i_atual_prox = aux.sequence[seg_1.second + 1];
-
-    int j_atual_ant = aux.sequence[seg_2.first - 1];
-    int j_atual_L = aux.sequence[seg_2.first];
-    int j_atual_R = aux.sequence[seg_2.second];
-    int j_atual_prox = aux.sequence[seg_2.second + 1];
+    int prev_j = aux.sequence[seg_2.first - 1];
+    int cur_j_left = aux.sequence[seg_2.first];
+    int cur_j_right = aux.sequence[seg_2.second];
+    int next_j = aux.sequence[seg_2.second + 1];
 
     double delta = 0.0;
 
     // corner case
     if (seg_1.second + 1 == seg_2.first){
-        delta = - g[i_atual_ant][i_atual_L] - g[i_atual_R][i_atual_prox] - g[j_atual_R][j_atual_prox]
-                + g[i_atual_ant][j_atual_L] + g[i_atual_R][j_atual_prox] + g[j_atual_R][i_atual_L];
+        delta = - g[prev_i][cur_i_left] - g[cur_i_right][next_i] - g[cur_j_right][next_j]
+                + g[prev_i][cur_j_left] + g[cur_i_right][next_j] + g[cur_j_right][cur_i_left];
     }
     else {
-        delta = - g[i_atual_ant][i_atual_L] - g[i_atual_R][i_atual_prox]
-                - g[j_atual_ant][j_atual_L] - g[j_atual_R][j_atual_prox]
-                + g[i_atual_ant][j_atual_L] + g[i_atual_R][j_atual_prox]
-                + g[j_atual_ant][i_atual_L] + g[j_atual_R][i_atual_prox];
+        delta = - g[prev_i][cur_i_left] - g[cur_i_right][next_i]
+                - g[prev_j][cur_j_left] - g[cur_j_right][next_j]
+                + g[prev_i][cur_j_left] + g[cur_i_right][next_j]
+                + g[prev_j][cur_i_left] + g[cur_j_right][next_i];
     }
    
 
     aux.cost = aux.cost + delta;
 
-    // cout << "Novo: " << aux.cost << "\n\n";
-
-    vector<int> elementos;
-    elementos.reserve(tamanho);
+    vector<int> elements;
+    elements.reserve(sizes);
 
     // [0, i_l)
-    elementos.insert(elementos.end(), aux.sequence.begin(), aux.sequence.begin() + seg_1.first);
+    elements.insert(elements.end(), aux.sequence.begin(), aux.sequence.begin() + seg_1.first);
     
     // [j_l, j_r]
-    elementos.insert(elementos.end(), aux.sequence.begin() + seg_2.first, aux.sequence.begin() + seg_2.second + 1);
+    elements.insert(elements.end(), aux.sequence.begin() + seg_2.first, aux.sequence.begin() + seg_2.second + 1);
 
     // (i_r, j_l)
     if (seg_1.second + 1 != seg_2.first){
-        elementos.insert(elementos.end(), aux.sequence.begin() + seg_1.second + 1, aux.sequence.begin() + seg_2.first);        
+        elements.insert(elements.end(), aux.sequence.begin() + seg_1.second + 1, aux.sequence.begin() + seg_2.first);        
     }
 
     // [i_l, i_r]
-    elementos.insert(elementos.end(), aux.sequence.begin() + seg_1.first, aux.sequence.begin() + seg_1.second + 1);
+    elements.insert(elements.end(), aux.sequence.begin() + seg_1.first, aux.sequence.begin() + seg_1.second + 1);
 
     // (j_r, n)
-    elementos.insert(elementos.end(), aux.sequence.begin() + seg_2.second + 1, aux.sequence.end());
+    elements.insert(elements.end(), aux.sequence.begin() + seg_2.second + 1, aux.sequence.end());
 
-    aux.sequence = elementos;
+    aux.sequence = elements;
 
     return aux;
 }
@@ -372,22 +362,20 @@ Solution ILS(int maxIter, int maxIterIls){
 
     bestOfAll.cost = INF;
     for (int i = 0; i < maxIter; i++){
-        Solution s = Construcao();
+        Solution s = Construction();
         Solution best = s;
 
         int iterILS = 0;
 
         while(iterILS <= maxIterIls){
-            BuscaLocal(s);
+            LocalSearch(s);
 
             if (s.cost < best.cost){
                 best = s;
                 iterILS = 0;
             }
             
-            s = Perturbacao(best);
-
-            // cout << s.cost << "\n\n";
+            s = Pertubation(best);
 
             iterILS++;
         }
@@ -420,7 +408,7 @@ int main(int argc, char** argv) {
 
     auto start = chrono::high_resolution_clock::now();
 
-    Solution fim = ILS(maxIter, maxIterILS);
+    Solution SOL = ILS(maxIter, maxIterILS);
 
     auto end = chrono::high_resolution_clock::now();
 
@@ -428,9 +416,9 @@ int main(int argc, char** argv) {
 
     cout << "TEMPO: " << duration.count() << "\n";
 
-    cout << fim.cost << "\n";
-    for (int i = 0; i < fim.sequence.size(); i++){
-        cout << fim.sequence[i] << " \n"[i == fim.sequence.size() - 1];
+    cout << SOL.cost << "\n";
+    for (int i = 0; i < SOL.sequence.size(); i++){
+        cout << SOL.sequence[i] << " \n"[i == SOL.sequence.size() - 1];
     }
 
     return 0;
