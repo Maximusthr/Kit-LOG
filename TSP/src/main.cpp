@@ -28,50 +28,90 @@ struct InsertionInfo{
 int n;
 vector<vector<double>> g;
 
-vector<InsertionInfo> InsertionCost(Solution &s, set<int> &CL){
-    vector<InsertionInfo> cost_Insertion((s.sequence.size() - 1) * CL.size());
+Solution ILS(int maxIter, int maxIterIls);
 
-    int l = 0;
-    for (int a = 0; a < s.sequence.size() - 1; a++){
-        int i = s.sequence[a];
-        int j = s.sequence[a+1];
-        for (auto k : CL){
-            cost_Insertion[l].cost = g[i][k] + g[j][k] - g[i][j];
-            cost_Insertion[l].InsertNode = k;
-            cost_Insertion[l].RemovedEdge = a;
-            l++;
-        }
-    }
+Solution Construction();
+vector<InsertionInfo> InsertionCost(Solution &s, set<int> &CL);
+void chooseRandomNodes(Solution &s, vector<bool> &elements);
+void RemainingNodes(set<int> &CL, vector<bool> &elements);
+void InsertingSolution(Solution &s, vector<InsertionInfo> &node, int selected);
 
-    return cost_Insertion;
-}
+void LocalSearch (Solution &s);
+bool bestImprovementSwap(Solution &s);
+bool bestImprovement20pt(Solution &s);
+bool bestImprovementOrOpt (Solution &s, int block);
 
-void chooseRandomNodes(Solution &s, vector<bool> &elements){
-    uniform_int_distribution<int> dist(2, n);
+Solution Pertubation(Solution SOL);
 
-    int found = 0;
-    while (found < 3){
-        int value = dist(rng);
+int main(int argc, char** argv) {
 
-        if (!elements[value]){
-            found++;
-            elements[value] = true;
-            s.sequence.push_back(value);
-        }
-    }
-}
+    auto data = Data(argc, argv[1]);
+    data.read();
+    n = data.getDimension();
 
-void RemainingNodes(set<int> &CL, vector<bool> &elements){
+    g.resize(n + 1, vector<double> (n + 1));
+
     for (int i = 1; i <= n; i++){
-        if (!elements[i]) CL.insert(i);
+        for (int j = 1; j <= n; j++){
+            g[i][j] = data.getDistance(i, j);
+        }
     }
+
+    int maxIter = 50;
+    int maxIterILS = (n >= 150 ? n/2 : n);
+
+    int runs = 10;
+    double totalTime = 0.0, totalCost = 0.0;
+
+    for (int i = 0; i < runs; i++){
+        auto start = chrono::high_resolution_clock::now();
+    
+        Solution SOL = ILS(maxIter, maxIterILS);
+    
+        auto end = chrono::high_resolution_clock::now();
+    
+        chrono::duration<double> duration = end - start;
+        totalTime += duration.count();
+        totalCost += SOL.cost;
+    }
+
+    cout << totalTime / runs << " " << totalCost / runs << "\n\n";
+
+    return 0;
 }
 
-void inserirNaSolucao(Solution &s, vector<InsertionInfo> &node, int selected){
-    s.cost += node[selected].cost;
-    
-    s.sequence.insert(s.sequence.begin() + node[selected].RemovedEdge + 1, node[selected].InsertNode);
+
+Solution ILS(int maxIter, int maxIterIls){
+    Solution bestOfAll;
+
+    bestOfAll.cost = INF;
+    for (int i = 0; i < maxIter; i++){
+        Solution s = Construction();
+        Solution best = s;
+
+        int iterILS = 0;
+
+        while(iterILS <= maxIterIls){
+            LocalSearch(s);
+
+            if (s.cost < best.cost){
+                best = s;
+                iterILS = 0;
+            }
+            
+            s = Pertubation(best);
+
+            iterILS++;
+        }
+        
+        if (best.cost < bestOfAll.cost){
+            bestOfAll = best;
+        }
+    }
+
+    return bestOfAll;
 }
+
 
 Solution Construction(){
     Solution s;
@@ -103,13 +143,100 @@ Solution Construction(){
 
         int selected = rand() % ((int) ceil (alpha * (cost_Insertion.size() - 1)));
 
-        inserirNaSolucao(s, cost_Insertion, selected);
+        InsertingSolution(s, cost_Insertion, selected);
 
         CL.erase(cost_Insertion[selected].InsertNode);
     }
 
     return s;
 }
+
+
+vector<InsertionInfo> InsertionCost(Solution &s, set<int> &CL){
+    vector<InsertionInfo> cost_Insertion((s.sequence.size() - 1) * CL.size());
+
+    int l = 0;
+    for (int a = 0; a < s.sequence.size() - 1; a++){
+        int i = s.sequence[a];
+        int j = s.sequence[a+1];
+        for (auto k : CL){
+            cost_Insertion[l].cost = g[i][k] + g[j][k] - g[i][j];
+            cost_Insertion[l].InsertNode = k;
+            cost_Insertion[l].RemovedEdge = a;
+            l++;
+        }
+    }
+
+    return cost_Insertion;
+}
+
+
+void chooseRandomNodes(Solution &s, vector<bool> &elements){
+    uniform_int_distribution<int> dist(2, n);
+
+    int found = 0;
+    while (found < 3){
+        int value = dist(rng);
+
+        if (!elements[value]){
+            found++;
+            elements[value] = true;
+            s.sequence.push_back(value);
+        }
+    }
+}
+
+
+void RemainingNodes(set<int> &CL, vector<bool> &elements){
+    for (int i = 1; i <= n; i++){
+        if (!elements[i]) CL.insert(i);
+    }
+}
+
+
+void InsertingSolution(Solution &s, vector<InsertionInfo> &node, int selected){
+    s.cost += node[selected].cost;
+    
+    s.sequence.insert(s.sequence.begin() + node[selected].RemovedEdge + 1, node[selected].InsertNode);
+}
+
+
+void LocalSearch (Solution &s){
+    vector<int> NL = {1, 2, 3, 4, 5};
+    bool improved = false;
+
+    while (!NL.empty()){
+        uniform_int_distribution<int> random(0, NL.size()-1);
+
+        int choice = random(rng);
+
+        switch(NL[choice]){
+            case 1:
+                improved = bestImprovementSwap(s);
+                break;
+            case 2:
+                improved = bestImprovement20pt(s);
+                break;
+            case 3:
+                improved = bestImprovementOrOpt(s, 1);
+                break;
+            case 4:
+                improved = bestImprovementOrOpt(s, 2);
+                break;
+            case 5:
+                improved = bestImprovementOrOpt(s, 3);
+                break;
+        }
+
+        if (improved){
+            NL = {1, 2, 3, 4, 5};
+        }
+        else {
+            NL.erase(NL.begin() + choice);
+        }
+    }
+}
+
 
 bool bestImprovementSwap(Solution &s){
     double bestDelta = 0;
@@ -153,6 +280,7 @@ bool bestImprovementSwap(Solution &s){
     return false;
 }
 
+
 bool bestImprovement20pt(Solution &s){
     double bestDelta = 0;
     int best_i, best_j;
@@ -183,6 +311,7 @@ bool bestImprovement20pt(Solution &s){
 
     return false;
 }
+
 
 bool bestImprovementOrOpt (Solution &s, int block){
 
@@ -232,41 +361,6 @@ bool bestImprovementOrOpt (Solution &s, int block){
     return false;
 }
 
-void LocalSearch (Solution &s){
-    vector<int> NL = {1, 2, 3, 4, 5};
-    bool improved = false;
-
-    while (!NL.empty()){
-        uniform_int_distribution<int> random(0, NL.size()-1);
-
-        int choice = random(rng);
-
-        switch(NL[choice]){
-            case 1:
-                improved = bestImprovementSwap(s);
-                break;
-            case 2:
-                improved = bestImprovement20pt(s);
-                break;
-            case 3:
-                improved = bestImprovementOrOpt(s, 1);
-                break;
-            case 4:
-                improved = bestImprovementOrOpt(s, 2);
-                break;
-            case 5:
-                improved = bestImprovementOrOpt(s, 3);
-                break;
-        }
-
-        if (improved){
-            NL = {1, 2, 3, 4, 5};
-        }
-        else {
-            NL.erase(NL.begin() + choice);
-        }
-    }
-}
 
 Solution Pertubation(Solution SOL){
     
@@ -355,71 +449,4 @@ Solution Pertubation(Solution SOL){
     aux.sequence = elements;
 
     return aux;
-}
-
-Solution ILS(int maxIter, int maxIterIls){
-    Solution bestOfAll;
-
-    bestOfAll.cost = INF;
-    for (int i = 0; i < maxIter; i++){
-        Solution s = Construction();
-        Solution best = s;
-
-        int iterILS = 0;
-
-        while(iterILS <= maxIterIls){
-            LocalSearch(s);
-
-            if (s.cost < best.cost){
-                best = s;
-                iterILS = 0;
-            }
-            
-            s = Pertubation(best);
-
-            iterILS++;
-        }
-        
-        if (best.cost < bestOfAll.cost){
-            bestOfAll = best;
-        }
-    }
-
-    return bestOfAll;
-}
-
-
-int main(int argc, char** argv) {
-
-    auto data = Data(argc, argv[1]);
-    data.read();
-    n = data.getDimension();
-
-    g.resize(n + 1, vector<double> (n + 1));
-
-    for (int i = 1; i <= n; i++){
-        for (int j = 1; j <= n; j++){
-            g[i][j] = data.getDistance(i, j);
-        }
-    }
-
-    int maxIter = 50;
-    int maxIterILS = (n >= 150 ? n/2 : n);
-
-    auto start = chrono::high_resolution_clock::now();
-
-    Solution SOL = ILS(maxIter, maxIterILS);
-
-    auto end = chrono::high_resolution_clock::now();
-
-    chrono::duration<double> duration = end - start;
-
-    cout << "TEMPO: " << duration.count() << "\n";
-
-    cout << SOL.cost << "\n";
-    for (int i = 0; i < SOL.sequence.size(); i++){
-        cout << SOL.sequence[i] << " \n"[i == SOL.sequence.size() - 1];
-    }
-
-    return 0;
 }
