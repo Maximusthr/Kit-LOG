@@ -235,7 +235,6 @@ bool bestImprovementOrOpt (Solution &s, int bloco){
 
 void BuscaLocal (Solution &s){
     vector<int> NL = {1, 2, 3, 4, 5};
-    // vector<int> NL = {3, 4, 5};
     bool improved = false;
 
     while (!NL.empty()){
@@ -270,6 +269,104 @@ void BuscaLocal (Solution &s){
     }
 }
 
+Solution Perturbacao(Solution SOL){
+    
+    // cout << "Entrou" << "\n";
+
+    int tamanho = SOL.sequence.size();
+    
+    int inicio = 2;
+    int fim = (tamanho + 9)/10;
+    
+    auto Intersec = [&](int x1, int y1, int x2, int y2) -> bool {
+        // true = tem interseção
+        return ((y2 >= x1 && y2 <= y1) || (y1 >= x2 && y1 <= y2));
+        // return max(x1, x2) <= min(y1, y2);
+    };
+    
+    pair<int, int> seg_1, seg_2;
+    
+    do {
+        uniform_int_distribution<int> aleat_1(inicio, fim);
+        uniform_int_distribution<int> aleat_2(inicio, fim);
+        
+        int v1 = aleat_1(rng);
+        int v2 = aleat_2(rng);
+
+        uniform_int_distribution<int> SEG_ELEM_1(1, tamanho - v1 - 2);
+        uniform_int_distribution<int> SEG_ELEM_2(1, tamanho - v2 - 2);
+
+        seg_1.first = SEG_ELEM_1(rng);
+        seg_1.second = seg_1.first + v1 - 1;
+
+        
+        seg_2.first = SEG_ELEM_2(rng);
+        seg_2.second = seg_2.first + v2 - 1;
+
+    } while (Intersec(seg_1.first, seg_1.second, seg_2.first, seg_2.second));
+
+    Solution aux = SOL;
+    
+    // cout << "Anterior: " << aux.cost << "\n";
+    
+    // if (seg_1.second > seg_2.second) swap(seg_1, seg_2);
+    if (seg_1.first > seg_2.first) swap(seg_1, seg_2);
+
+
+    int i_atual_ant = aux.sequence[seg_1.first - 1];
+    int i_atual_L = aux.sequence[seg_1.first];
+    int i_atual_R = aux.sequence[seg_1.second];
+    int i_atual_prox = aux.sequence[seg_1.second + 1];
+
+    int j_atual_ant = aux.sequence[seg_2.first - 1];
+    int j_atual_L = aux.sequence[seg_2.first];
+    int j_atual_R = aux.sequence[seg_2.second];
+    int j_atual_prox = aux.sequence[seg_2.second + 1];
+
+    double delta = 0.0;
+
+    // corner case
+    if (seg_1.second + 1 == seg_2.first){
+        delta = - g[i_atual_ant][i_atual_L] - g[i_atual_R][i_atual_prox] - g[j_atual_R][j_atual_prox]
+                + g[i_atual_ant][j_atual_L] + g[i_atual_R][j_atual_prox] + g[j_atual_R][i_atual_L];
+    }
+    else {
+        delta = - g[i_atual_ant][i_atual_L] - g[i_atual_R][i_atual_prox]
+                - g[j_atual_ant][j_atual_L] - g[j_atual_R][j_atual_prox]
+                + g[i_atual_ant][j_atual_L] + g[i_atual_R][j_atual_prox]
+                + g[j_atual_ant][i_atual_L] + g[j_atual_R][i_atual_prox];
+    }
+   
+
+    aux.cost = aux.cost + delta;
+
+    // cout << "Novo: " << aux.cost << "\n\n";
+
+    vector<int> elementos;
+    elementos.reserve(tamanho);
+
+    // [0, i_l)
+    elementos.insert(elementos.end(), aux.sequence.begin(), aux.sequence.begin() + seg_1.first);
+    
+    // [j_l, j_r]
+    elementos.insert(elementos.end(), aux.sequence.begin() + seg_2.first, aux.sequence.begin() + seg_2.second + 1);
+
+    // (i_r, j_l)
+    if (seg_1.second + 1 != seg_2.first){
+        elementos.insert(elementos.end(), aux.sequence.begin() + seg_1.second + 1, aux.sequence.begin() + seg_2.first);        
+    }
+
+    // [i_l, i_r]
+    elementos.insert(elementos.end(), aux.sequence.begin() + seg_1.first, aux.sequence.begin() + seg_1.second + 1);
+
+    // (j_r, n)
+    elementos.insert(elementos.end(), aux.sequence.begin() + seg_2.second + 1, aux.sequence.end());
+
+    aux.sequence = elementos;
+
+    return aux;
+}
+
 Solution ILS(int maxIter, int maxIterIls){
     Solution bestOfAll;
 
@@ -288,7 +385,9 @@ Solution ILS(int maxIter, int maxIterIls){
                 iterILS = 0;
             }
             
-        //     s = Perturbacao(best);
+            s = Perturbacao(best);
+
+            // cout << s.cost << "\n\n";
 
             iterILS++;
         }
@@ -317,29 +416,22 @@ int main(int argc, char** argv) {
     }
 
     int maxIter = 50;
-    int maxIterILS = (n/2 ? n >= 150 : n);
+    int maxIterILS = (n >= 150 ? n/2 : n);
+
+    auto start = chrono::high_resolution_clock::now();
 
     Solution fim = ILS(maxIter, maxIterILS);
+
+    auto end = chrono::high_resolution_clock::now();
+
+    chrono::duration<double> duration = end - start;
+
+    cout << "TEMPO: " << duration.count() << "\n";
 
     cout << fim.cost << "\n";
     for (int i = 0; i < fim.sequence.size(); i++){
         cout << fim.sequence[i] << " \n"[i == fim.sequence.size() - 1];
     }
-
-    // cout << "Dimension: " << n << endl;
-    // cout << "DistanceMatrix: " << endl;
-    // data.printMatrixDist();
-
-
-    // cout << "Exemplo de Solucao s = ";
-    // double cost = 0.0;
-    // for (size_t i = 1; i < n; i++) {
-    //     cout << i << " -> ";
-    //     cost += data.getDistance(i, i+1);
-    // }
-    // cost += data.getDistance(n, 1);
-    // cout << n << " -> " << 1 << endl;
-    // cout << "Custo de S: " << cost << endl;
 
     return 0;
 }
