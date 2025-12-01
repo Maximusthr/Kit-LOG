@@ -1,4 +1,4 @@
-mingw32-make
+make
 
 k=1
 
