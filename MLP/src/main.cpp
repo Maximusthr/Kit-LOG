@@ -240,7 +240,7 @@ void InsertingSolution(Solution &s, vector<InsertionInfo> &node, int selected){
 
 void LocalSearch (Solution &s){
     // vector<int> NL = {1, 2, 3, 4, 5};
-    vector<int> NL = {1, 2};
+    vector<int> NL = {1, 2, 3, 4, 5};
     bool improved = false;
 
     while (!NL.empty()){
@@ -268,7 +268,7 @@ void LocalSearch (Solution &s){
 
         if (improved){
             // NL = {1, 2, 3, 4, 5};
-            NL = {1, 2};
+            NL = {1, 2, 3, 4, 5};
         }
         else {
             NL.erase(NL.begin() + choice);
@@ -285,7 +285,6 @@ bool bestImprovementSwap(Solution &s){
         for (int j = i + 1; j < s.sequence.size() - 1; j++){
             
             Subsequence sigma;
-
             
             // corner case
             if (i + 1 == j){
@@ -350,36 +349,39 @@ bool bestImprovement2Opt(Solution &s){
 
 bool bestImprovementOrOpt (Solution &s, int block){
 
-    double bestDelta = 0;
+    double bestDelta = s.cost;
     int best_i, best_j;
 
     for (int i = 1; i < s.sequence.size() - block; i++){
-        int cur_i = s.sequence[i];
-        int block_i = s.sequence[i + block - 1];
-        int next_i = s.sequence[i + block];
-        int prev_i = s.sequence[i - 1];
-
         for (int j = 0; j < s.sequence.size() - 1; j++){
             if (j + 1 == i) {
                 j += block;
                 continue;
-            }
+            }   
             
-            int cur_j = s.sequence[j];
-            int next_j = s.sequence[j + 1];
+            Subsequence sigma;
 
-            double delta = - g[cur_j][next_j] - g[prev_i][cur_i] - g[block_i][next_i]
-                           + g[cur_j][cur_i] + g[block_i][next_j] + g[prev_i][next_i];
+            if (j < i){
+                sigma = Subsequence::Concatenate(subseq_matrix[0][j], subseq_matrix[i][i + block - 1]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[j + 1][i - 1]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[i + block][n]);
+            }
+            else {
+                sigma = Subsequence::Concatenate(subseq_matrix[0][i], subseq_matrix[i + block - 1][j]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[i - 1][i + block]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[j + 1][n]);
+            }
 
-            if (delta < bestDelta){
-                bestDelta = delta;
+            if (sigma.C < bestDelta){
+                bestDelta = sigma.C;
                 best_i = i;
                 best_j = j;
             }
         }
     }
 
-    if (bestDelta < 0){
+    if (bestDelta < s.cost){
+        s.cost = bestDelta;
 
         if (best_i > best_j){
             rotate(s.sequence.begin() + best_j + 1, s.sequence.begin() + best_i, s.sequence.begin() + best_i + block);
@@ -388,8 +390,8 @@ bool bestImprovementOrOpt (Solution &s, int block){
             rotate(s.sequence.begin() + best_i, s.sequence.begin() + best_i + block, s.sequence.begin() + best_j + 1);
         }
 
-        
-        s.cost = s.cost + bestDelta;
+        UpdateSpecificSubseq(s, min(best_i, best_j), max(best_j, best_i + block - 1));
+
         return true;
     }
 
@@ -487,9 +489,7 @@ Solution Pertubation(Solution SOL){
 }
 
 void UpdateAllSubseq(Solution s){
-    // 0 indexado ou 1 indexado?
-    // aqui eh 0 indexado
-
+    
     for (int i = 0; i <= n; i++){
         int v = s.sequence[i];
         subseq_matrix[i][i].W = (i > 0);
@@ -515,8 +515,6 @@ void UpdateAllSubseq(Solution s){
 }
 
 void UpdateSpecificSubseq(Solution s, int new_start, int new_end){
-
-    // ver a indexacao
 
     for (int i = new_start; i <= new_end; i++){
         int v = s.sequence[i];
