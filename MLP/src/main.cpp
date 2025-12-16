@@ -122,7 +122,7 @@ Solution ILS(int maxIter, int maxIterIls){
                 iterILS = 0;
             }
             
-            // s = Pertubation(best);
+            s = Pertubation(best);
 
             iterILS++;
         }
@@ -436,33 +436,6 @@ Solution Pertubation(Solution SOL){
     
     if (seg_1.first > seg_2.first) swap(seg_1, seg_2);
 
-    int prev_i = aux.sequence[seg_1.first - 1];
-    int cur_i_left = aux.sequence[seg_1.first];
-    int cur_i_right = aux.sequence[seg_1.second];
-    int next_i = aux.sequence[seg_1.second + 1];
-
-    int prev_j = aux.sequence[seg_2.first - 1];
-    int cur_j_left = aux.sequence[seg_2.first];
-    int cur_j_right = aux.sequence[seg_2.second];
-    int next_j = aux.sequence[seg_2.second + 1];
-
-    double delta = 0.0;
-
-    // corner case
-    if (seg_1.second + 1 == seg_2.first){
-        delta = - g[prev_i][cur_i_left] - g[cur_i_right][next_i] - g[cur_j_right][next_j]
-                + g[prev_i][cur_j_left] + g[cur_i_right][next_j] + g[cur_j_right][cur_i_left];
-    }
-    else {
-        delta = - g[prev_i][cur_i_left] - g[cur_i_right][next_i]
-                - g[prev_j][cur_j_left] - g[cur_j_right][next_j]
-                + g[prev_i][cur_j_left] + g[cur_i_right][next_j]
-                + g[prev_j][cur_i_left] + g[cur_j_right][next_i];
-    }
-   
-
-    aux.cost = aux.cost + delta;
-
     vector<int> elements;
     elements.reserve(sizes);
 
@@ -484,12 +457,15 @@ Solution Pertubation(Solution SOL){
     elements.insert(elements.end(), aux.sequence.begin() + seg_2.second + 1, aux.sequence.end());
 
     aux.sequence = elements;
+    
+    UpdateAllSubseq(aux);
+    aux.cost = subseq_matrix[0][n].C;
 
     return aux;
 }
 
 void UpdateAllSubseq(Solution s){
-    
+
     for (int i = 0; i <= n; i++){
         int v = s.sequence[i];
         subseq_matrix[i][i].W = (i > 0);
