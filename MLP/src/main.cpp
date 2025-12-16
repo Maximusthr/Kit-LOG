@@ -61,6 +61,7 @@ bool bestImprovement2Opt(Solution &s);
 bool bestImprovementOrOpt (Solution &s, int block);
 
 void UpdateAllSubseq(Solution s);
+void UpdateSpecificSubseq(Solution s, int new_start, int new_end);
 
 Solution Pertubation(Solution SOL);
 
@@ -239,7 +240,7 @@ void InsertingSolution(Solution &s, vector<InsertionInfo> &node, int selected){
 
 void LocalSearch (Solution &s){
     // vector<int> NL = {1, 2, 3, 4, 5};
-    vector<int> NL = {2};
+    vector<int> NL = {1, 2};
     bool improved = false;
 
     while (!NL.empty()){
@@ -267,7 +268,7 @@ void LocalSearch (Solution &s){
 
         if (improved){
             // NL = {1, 2, 3, 4, 5};
-            NL = {2};
+            NL = {1, 2};
         }
         else {
             NL.erase(NL.begin() + choice);
@@ -277,41 +278,38 @@ void LocalSearch (Solution &s){
 
 
 bool bestImprovementSwap(Solution &s){
-    double bestDelta = 0;
+    double bestDelta = s.cost;
     int best_i, best_j;
 
     for (int i = 1; i < s.sequence.size() - 1; i++){
-        int vi = s.sequence[i];
-        int vi_next = s.sequence[i+1];
-        int vi_prev = s.sequence[i-1];
-
         for (int j = i + 1; j < s.sequence.size() - 1; j++){
-            int vj = s.sequence[j];
-            int vj_next = s.sequence[j+1];
-            int vj_prev = s.sequence[j-1];
-            double delta = 0;
+            
+            Subsequence sigma;
 
+            
             // corner case
             if (i + 1 == j){
-                delta = - g[vi_prev][vi] - g[vi][vj] - g[vj][vj_next] 
-                        + g[vi_prev][vj] + g[vj][vi] + g[vi][vj_next];
+                sigma = Subsequence::Concatenate(subseq_matrix[0][i-1], subseq_matrix[j][i]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[j+1][n]);
             }
             else {
-                delta = - g[vi_prev][vi] - g[vi][vi_next] - g[vj_prev][vj] - g[vj][vj_next]
-                        + g[vi_prev][vj] + g[vi][vj_next] + g[vj_prev][vi] + g[vj][vi_next];
+                sigma = Subsequence::Concatenate(subseq_matrix[0][i-1], subseq_matrix[j][i+1]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[j-1][i]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[j+1][n]);
             }
 
-            if (delta < bestDelta){
-                bestDelta = delta;
+            if (sigma.C < bestDelta){
+                bestDelta = sigma.C;
                 best_i = i;
                 best_j = j;
             }
         }
     }
 
-    if (bestDelta < 0){
+    if (bestDelta < s.cost){
+        s.cost = bestDelta;
         swap(s.sequence[best_i], s.sequence[best_j]);
-        s.cost = s.cost + bestDelta;
+        UpdateSpecificSubseq(s, best_i, best_j);
         return true;
     }
 
