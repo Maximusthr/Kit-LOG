@@ -60,8 +60,8 @@ bool bestImprovementSwap(Solution &s);
 bool bestImprovement2Opt(Solution &s);
 bool bestImprovementOrOpt (Solution &s, int block);
 
-void UpdateAllSubseq(Solution s);
-void UpdateSpecificSubseq(Solution s, int new_start, int new_end);
+void UpdateAllSubseq(Solution &s);
+void UpdateSpecificSubseq(Solution &s, int new_start, int new_end);
 
 Solution Pertubation(Solution SOL);
 
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
     int maxIter = 10;
     int maxIterILS = min(100, n);
 
-    int runs = 1;
+    int runs = 10;
     double totalTime = 0.0, totalCost = 0.0;
 
     for (int i = 0; i < runs; i++){
@@ -165,10 +165,8 @@ Solution Construction(){
             return x.cost < y.cost;
         });
 
-        int range = (int) ceil(alpha * (cost_Insertion.size()-1));
-        if (range < 1) range = 1;
-
-        int selected = rand() % range;
+        uniform_int_distribution<int> number(0, alpha * (cost_Insertion.size()-1));
+        int selected = number(rng);
         s.sequence.push_back(cost_Insertion[selected].InsertNode);
 
         CL.erase(cost_Insertion[selected].InsertNode);
@@ -179,8 +177,6 @@ Solution Construction(){
     UpdateAllSubseq(s);
 
     s.cost = subseq_matrix[0][n].C;
-
-    cout << s.cost << "\n";
 
     return s;
 }
@@ -196,7 +192,6 @@ vector<InsertionInfo> InsertionCost(Solution &s, set<int> &CL){
         for (auto k : CL){
             cost_Insertion[l].cost = g[i][k] + g[j][k] - g[i][j];
             cost_Insertion[l].InsertNode = k;
-            // cost_Insertion[l].RemovedEdge = a;
             l++;
         }
     }
@@ -233,13 +228,10 @@ void RemainingNodes(set<int> &CL, vector<bool> &elements){
 
 void InsertingSolution(Solution &s, vector<InsertionInfo> &node, int selected){
     s.cost += node[selected].cost;
-    
-    // s.sequence.insert(s.sequence.begin() + node[selected].RemovedEdge + 1, node[selected].InsertNode);
 }
 
 
 void LocalSearch (Solution &s){
-    // vector<int> NL = {1, 2, 3, 4, 5};
     vector<int> NL = {1, 2, 3, 4, 5};
     bool improved = false;
 
@@ -267,7 +259,6 @@ void LocalSearch (Solution &s){
         }
 
         if (improved){
-            // NL = {1, 2, 3, 4, 5};
             NL = {1, 2, 3, 4, 5};
         }
         else {
@@ -288,12 +279,14 @@ bool bestImprovementSwap(Solution &s){
             
             // corner case
             if (i + 1 == j){
-                sigma = Subsequence::Concatenate(subseq_matrix[0][i-1], subseq_matrix[j][i]);
+                sigma = Subsequence::Concatenate(subseq_matrix[0][i-1], subseq_matrix[j][j]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[i][i]);
                 sigma = Subsequence::Concatenate(sigma, subseq_matrix[j+1][n]);
             }
             else {
-                sigma = Subsequence::Concatenate(subseq_matrix[0][i-1], subseq_matrix[j][i+1]);
-                sigma = Subsequence::Concatenate(sigma, subseq_matrix[j-1][i]);
+                sigma = Subsequence::Concatenate(subseq_matrix[0][i-1], subseq_matrix[j][j]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[i+1][j-1]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[i][i]);
                 sigma = Subsequence::Concatenate(sigma, subseq_matrix[j+1][n]);
             }
 
@@ -367,8 +360,8 @@ bool bestImprovementOrOpt (Solution &s, int block){
                 sigma = Subsequence::Concatenate(sigma, subseq_matrix[i + block][n]);
             }
             else {
-                sigma = Subsequence::Concatenate(subseq_matrix[0][i], subseq_matrix[i + block - 1][j]);
-                sigma = Subsequence::Concatenate(sigma, subseq_matrix[i - 1][i + block]);
+                sigma = Subsequence::Concatenate(subseq_matrix[0][i-1], subseq_matrix[i + block][j]);
+                sigma = Subsequence::Concatenate(sigma, subseq_matrix[i - 1][i + block - 1]);
                 sigma = Subsequence::Concatenate(sigma, subseq_matrix[j + 1][n]);
             }
 
@@ -464,7 +457,7 @@ Solution Pertubation(Solution SOL){
     return aux;
 }
 
-void UpdateAllSubseq(Solution s){
+void UpdateAllSubseq(Solution &s){
 
     for (int i = 0; i <= n; i++){
         int v = s.sequence[i];
@@ -490,7 +483,7 @@ void UpdateAllSubseq(Solution s){
     }
 }
 
-void UpdateSpecificSubseq(Solution s, int new_start, int new_end){
+void UpdateSpecificSubseq(Solution &s, int new_start, int new_end){
 
     for (int i = new_start; i <= new_end; i++){
         int v = s.sequence[i];
