@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
         totalCost += SOL.cost;
     }
 
-    cout << totalTime / runs << " " << totalCost / runs << "\n\n";
+    cout << fixed << totalTime / runs << " " << totalCost / runs << "\n\n";
 
     return 0;
 }
