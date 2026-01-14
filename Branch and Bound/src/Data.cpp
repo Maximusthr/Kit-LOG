@@ -13,9 +13,9 @@ distMatrix(NULL){
 		exit( 1 );        
 	}
 
-	if ( qtParam > 2 )    {
+	if ( qtParam > 4 )    {
 		cout << "Too many parameters\n";
-		cout << " ./exeLaRP [Instance]"  << endl;
+		cout << " ./exeLaRP [Instance] [Upper Bound] [Search method]"  << endl;
 		exit( 1 );
 	}
 
