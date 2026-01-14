@@ -298,17 +298,36 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	hungarian_problem_t p;
-	int mode = HUNGARIAN_MODE_MINIMIZE_COST;
-	hungarian_init(&p, cost, n, n, mode); // Carregando o problema
+	string strategy = argv[2];
 
-	double obj_value = hungarian_solve(&p);
-	cout << "Obj. value: " << obj_value << endl;
+	int runs = 10;
+    double totalTime = 0.0, totalCost = 0.0;
 
-	cout << "Assignment" << endl;
-	hungarian_print_assignment(&p);
+    for (int i = 0; i < runs; i++){
+        auto start = chrono::high_resolution_clock::now();
+    
+        double SOL = Solve(strategy, cost);
+    
+        auto end = chrono::high_resolution_clock::now();
+    
+        chrono::duration<double> duration = end - start;
+        totalTime += duration.count();
+        totalCost += SOL;
+    }
 
-	hungarian_free(&p);
+    cout << totalTime / runs << " " << totalCost / runs << "\n\n";
+
+	// hungarian_problem_t p;
+	// int mode = HUNGARIAN_MODE_MINIMIZE_COST;
+	// hungarian_init(&p, cost, n, n, mode); // Carregando o problema
+
+	// double obj_value = hungarian_solve(&p);
+	// cout << "Obj. value: " << obj_value << endl;
+
+	// cout << "Assignment" << endl;
+	// hungarian_print_assignment(&p);
+	// hungarian_free(&p);
+
 	for (int i = 0; i < n; i++) delete [] cost[i];
 	delete [] cost;
 
