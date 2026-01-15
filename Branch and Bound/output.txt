@@ -1,0 +1,57 @@
+./instances/bayg29.tsp
+DFS: 102.203 1610
+
+BFS: 0.572651 1610
+
+BBS: 0.716846 1610
+
+./instances/bays29.tsp
+DFS: 8.03132 2020
+
+BFS: 1.57557 2020
+
+BBS: 4.55187 2020
+
+./instances/burma14.tsp
+DFS: 1.61803 3323
+
+BFS: 1.03216 3323
+
+BBS: 4.03512 3323
+
+./instances/fri26.tsp
+DFS: 12.4455 937
+
+BFS: 5.63976 937
+
+BBS: 10.7847 937
+
+./instances/gr17.tsp
+DFS: 116.467 2085
+
+BFS: 85.8132 2085
+
+BBS: 322.903 2085
+
+./instances/gr21.tsp
+DFS: 0.00251998 2707
+
+BFS: 0.00276531 2707
+
+BBS: 0.00430259 2707
+
+./instances/gr24.tsp
+DFS: 0.319567 1272
+
+BFS: 0.236661 1272
+
+BBS: 0.380053 1272
+
+./instances/ulysses16.tsp
+DFS: 20.1123 6859
+
+BFS: 15.729 6859
+
+BBS: 61.6965 6859
+
+-

@@ -1,8 +1,8 @@
-make
+mingw32-make
 
 k=1
 
-for instance in data/instances/*; do
+for instance in ./instances/*; do
     echo $instance >> ./output.txt
     
     echo "Instance $k of 8"
@@ -10,7 +10,7 @@ for instance in data/instances/*; do
         echo "Processando $instance com $strategy"
         
         printf "%s: " "$strategy" >> ./output.txt
-        ./build/src/tsp ${instance} $strategy >> ./output.txt
+        ./tsp ${instance} $strategy >> ./output.txt
     done
     k=$(($k+1))
 done
