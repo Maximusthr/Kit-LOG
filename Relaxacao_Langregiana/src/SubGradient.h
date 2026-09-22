@@ -4,12 +4,12 @@
 #include "MST.h"
 
 struct SubGradient {
-    std::vector<double> lambda;
-    double eps, eps_min;
-    int k, k_max;
     int n;
-    double weight;
+    int k, k_max;
+    double best_W;
     bool degree_check;
+    double eps, eps_min;
+    std::vector<double> lambda;
 
     std::vector<Edge> s;
 
@@ -17,9 +17,9 @@ struct SubGradient {
 
     double cost();
     bool feasible();
-    std::vector<Edge> edges();
+    std::vector<Edge> Edges();
 
-    double OneTree(std::vector<std::vector<double>> &matrix, std::vector<Edge> &S, std::vector<double> &lamb, double obj);
+    double OneTree(std::vector<std::vector<double>> &matrix, std::vector<Edge> &S, std::vector<double> &lamb);
     void solve(std::vector<std::vector<double>> &matrix, double upper_bound, std::vector<double> &lamb);
 };
 

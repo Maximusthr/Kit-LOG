@@ -3,26 +3,27 @@
 
 const int INF = 0x3f3f3f3f;
 
-SubGradient::SubGradient(int _n) : lambda(_n), n(_n) {
+SubGradient::SubGradient(int _n) : n(_n), lambda(n) {
     eps = 1.0;
     eps_min = 1e-5;
     k = 0;
     k_max = 30;
+    best_W = 0.0;
 }
 
 double SubGradient::cost(){
-    return weight;
+    return best_W;
 }
 
 bool SubGradient::feasible(){
     return degree_check;
 }
 
-std::vector<Edge> SubGradient::edges(){
+std::vector<Edge> SubGradient::Edges(){
     return s;
 }
 
-double SubGradient::OneTree(std::vector<std::vector<double>> &matrix, std::vector<Edge> &S, std::vector<double> &lamb, double obj){
+double SubGradient::OneTree(std::vector<std::vector<double>> &matrix, std::vector<Edge> &S, std::vector<double> &lamb){
     Edge ed1, ed2;
 
     ed1.w = ed2.w = INF;
@@ -30,7 +31,8 @@ double SubGradient::OneTree(std::vector<std::vector<double>> &matrix, std::vecto
     for (int i = 1; i < n; i++){
         double value = matrix[0][i] - lamb[i];
 
-        if (value < ed1.w){
+        if (value < ed1.w) {
+            ed2 = ed1;
             ed1 = {0, i, value};
         }
         else if (value < ed2.w) {
@@ -41,27 +43,26 @@ double SubGradient::OneTree(std::vector<std::vector<double>> &matrix, std::vecto
     S.push_back(ed1);
     S.push_back(ed2);
 
-    return obj + ed1.w + ed2.w;
+    return ed1.w + ed2.w;
 }
 
-void SubGradient::solve(std::vector<std::vector<double>> &matrix, double upper_bound, std::vector<double> &lamb){
-    if (lamb.size() == 0) lamb.resize(n);
+void SubGradient::solve(std::vector<std::vector<double>> &matrix, double UB, std::vector<double> &lamb){
+    if (lamb.empty()) lamb.resize(n);
 
     degree_check = false;
 
-    while(eps > eps_min + 1e-7 && !degree_check){
+    while(eps > eps_min){
         Kruskal kruskal(n);
         kruskal.init(matrix, lamb);
         kruskal.solve();
         
         // aqui é S e W, os valores do .h são s* e w*
         std::vector<Edge> S = move(kruskal.edges);
-        double W = OneTree(matrix, S, lamb, kruskal.weight); 
+        double W = kruskal.weight + OneTree(matrix, S, lamb); 
 
-        // std::cout << "ENTROU" << " " << W << "\n";
-
-        if (W > weight){
-            weight = W;
+        // colocar eps no best_W nao sei se afetou tanto
+        if (W > best_W){
+            best_W = W;
             lambda = lamb;
             s = S;
             k = 0;
@@ -74,8 +75,8 @@ void SubGradient::solve(std::vector<std::vector<double>> &matrix, double upper_b
             }
         }
 
-        if (W >= upper_bound) break;
-
+        if (W >= UB) break;
+        
         // S não s*
         std::vector<int> degree(n);
         for (int i = 0; i < S.size(); i++){
@@ -83,25 +84,21 @@ void SubGradient::solve(std::vector<std::vector<double>> &matrix, double upper_b
             degree[u]++;
             degree[v]++;
         }
-
-        double form = 0;
+        
+        double form = 0.0;
         for (int i = 1; i < n; i++){
             form += (2 - degree[i]) * (2 - degree[i]);
         }
-
-        if (form == 0) {
+        
+        if (form < 1e-9) {
             degree_check = true;
             break;
         }
 
-        double mi = eps * ((upper_bound - W) / form);
+        double mi = eps * ((UB - W) / form);
 
         for (int i = 1; i < n; i++){
             lamb[i] = lamb[i] + mi * (2 - degree[i]);
         }
     }
-
-    // if (!degree_check){
-    //     std::cout << "PROIBIDO" << "\n";
-    // }
 }

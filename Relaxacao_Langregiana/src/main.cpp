@@ -4,8 +4,7 @@
 #include <algorithm>
 #include <chrono>
 #include <queue>
-
-using namespace std;
+#include <deque>
 
 #include "Data.h"
 #include "SubGradient.h"
@@ -15,9 +14,9 @@ const int INF = 0x3f3f3f3f;
 int n;
 
 struct Node {
-	vector<pair<int, int>> forbidden_arcs;
-	vector<pair<int, int>> arcs;
-	vector<double> lambda;
+	std::vector<std::pair<int, int>> forbidden_arcs;
+	std::vector<std::pair<int, int>> arcs;
+	std::vector<double> lambda;
 	double lower_bound;
 	bool feasible;
 
@@ -30,38 +29,37 @@ struct Node {
 	};
 };
 
-vector<pair<int, int>> Arcs(std::vector<Edge> &one_tree){
+std::vector<std::pair<int, int>> Arcs(std::vector<Edge> &one_tree){
 	std::vector<int> degree(n);
-	for (int i = 0; i < one_tree.size(); i++){
-		auto [u, v, w] = one_tree[i];
+
+	for (auto [u, v, _] : one_tree){
 		degree[u]++;
 		degree[v]++;
 	}
 
-	int deg = 0;
-	int node = 0;
+	int pos = 0;
+	int mx = 0;
 	for (int i = 0; i < n; i++){
-		if (degree[i] > deg){
-			deg = degree[i];
-			node = i;
+		if (degree[i] > mx){
+			mx = degree[i];
+			pos = i;
 		}
 	}
 
-	vector<pair<int, int>> arcs;
-	for (int i = 0; i < one_tree.size(); i++){
-		auto [u, v, w] = one_tree[i];
-
-		if (u == node || v == node){
+	std::vector<std::pair<int, int>> arcs;
+	for (auto [u, v, _] : one_tree){
+		if (u == pos || v == pos){
 			arcs.push_back({u, v});
-		} 
+			if (arcs.size() == mx) break;
+		}
 	}
 
 	return arcs;
 }
 
-void updateNode(Node &node, vector<vector<double>> &cost, double UB){
-	vector<tuple<int, int, double>> prev_Values;
-	
+void updateNode(Node &node, std::vector<std::vector<double>> &cost, double UB){
+	std::vector<std::tuple<int, int, double>> prev_Values;
+
 	for (auto [u, v] : node.forbidden_arcs){
 		prev_Values.push_back({u, v, cost[u][v]});
 		cost[u][v] = INF;
@@ -70,19 +68,18 @@ void updateNode(Node &node, vector<vector<double>> &cost, double UB){
 	SubGradient grad(n);
 	grad.solve(cost, UB, node.lambda);
 
-	node.feasible = grad.feasible();
-	node.lower_bound = grad.cost();
-	node.arcs = Arcs(grad.s); 
 	node.lambda = grad.lambda;
+	node.lower_bound = grad.cost();
+	node.feasible = grad.feasible();
+	if (!node.feasible) node.arcs = Arcs(grad.s);
 
-	// reversing costs
-	for (auto [u, v, c] : prev_Values){
-		cost[u][v] = c;
+	for (auto [u, v, custo] : prev_Values){
+		cost[u][v] = custo;
 	}
 }
 
-double Solve_List(Node &root, vector<vector<double>> &cost, string &strategy, double upper_bound){
-	list<Node> tree;
+double Solve_List(Node &root, std::vector<std::vector<double>> &cost, string &strategy, double upper_bound){
+	std::deque<Node> tree; 
 	tree.push_back(root);
 
 	while(!tree.empty()){
@@ -96,32 +93,22 @@ double Solve_List(Node &root, vector<vector<double>> &cost, string &strategy, do
 			node = tree.front();
 			tree.pop_front();
 		}
-
-		if (node.feasible){
-			if (node.lower_bound < upper_bound){
-				upper_bound = node.lower_bound;
-			}
-			continue;
+		
+		if (node.feasible && node.lower_bound < upper_bound){
+			upper_bound = node.lower_bound;
 		}
-		
-		// if (node.feasible || node.lower_bound > upper_bound) continue;
-		
-		// std::cout << "VALOR: " << upper_bound << " " <<  node.lower_bound << "\n";
-		// std::cout << "PROIBIDOS: " << node.arcs.size() << "\n";
 
-		// childrens
-		for (int i = 0; i < node.arcs.size(); i++){
-			Node aux;
-			aux.forbidden_arcs = node.forbidden_arcs;
-			
-			pair<int, int> forbidden_arcs = node.arcs[i];
+		if (node.lower_bound >= upper_bound || node.feasible) continue;
 
-			aux.forbidden_arcs.push_back(forbidden_arcs);
-			aux.lambda = node.lambda;
+		for (auto [u, v] : node.arcs){
+			Node aux = node;
+			aux.arcs.clear();
+
+			aux.forbidden_arcs.push_back({u, v});
 
 			updateNode(aux, cost, upper_bound);
 
-			if (aux.lower_bound < upper_bound){ // < ou <=
+			if (aux.lower_bound <= upper_bound){
 				tree.push_back(aux);
 			}
 		}
@@ -130,34 +117,29 @@ double Solve_List(Node &root, vector<vector<double>> &cost, string &strategy, do
 	return upper_bound;
 }
 
-double Solve_Pq(Node &root, vector<vector<double>> &cost, string &strategy, double upper_bound){
-	priority_queue<Node, vector<Node>, greater<Node>> tree;
+double Solve_Pq(Node &root, std::vector<std::vector<double>> &cost, string &strategy, double upper_bound){
+	std::priority_queue<Node, std::vector<Node>, std::greater<Node>> tree;
 	tree.push(root);
 
 	while(!tree.empty()){
 		Node node = tree.top();
 		tree.pop();
 
-		if (node.feasible){
-			if (node.lower_bound < upper_bound){
-				upper_bound = node.lower_bound;
-			}
-			continue;
+		if (node.feasible && node.lower_bound < upper_bound){
+			upper_bound = node.lower_bound;
 		}
-		
-		if (node.lower_bound > upper_bound) continue;
 
-		// childrens
-		for (int i = 0; i < node.arcs.size(); i++){
-			Node aux;
-			aux.forbidden_arcs = node.forbidden_arcs;
-			
-			pair<int, int> forbidden_arcs = node.arcs[i];
+		if (node.lower_bound >= upper_bound || node.feasible) continue;
 
-			aux.forbidden_arcs.push_back(forbidden_arcs);
-			aux.lambda = node.lambda;
+		for (auto [u, v] : node.arcs){
+			Node aux = node;
+			aux.arcs.clear();
+
+			aux.forbidden_arcs.push_back({u, v});
+
 			updateNode(aux, cost, upper_bound);
-			if (aux.lower_bound < upper_bound){
+
+			if (aux.lower_bound <= upper_bound){
 				tree.push(aux);
 			}
 		}
@@ -167,7 +149,7 @@ double Solve_Pq(Node &root, vector<vector<double>> &cost, string &strategy, doub
 }
 
 
-double Solve(string &strategy, vector<vector<double>> &cost){
+double Solve(string &strategy, std::vector<std::vector<double>> &cost){
 	double rota = 0;
 	for (int i = 1; i < n; i++){
 		rota += cost[i-1][i];
@@ -192,7 +174,7 @@ int main(int argc, char** argv) {
 
 	n = (int) data.getDimension();
 
-	vector<vector<double>> cost(n, vector<double> (n));
+	std::vector<std::vector<double>> cost(n, std::vector<double> (n));
 	for (int i = 0; i < n; i++){
 		for (int j = 0; j < n; j++){
 			cost[i][j] = data.getDistance(i+1, j+1);

@@ -1,7 +1,7 @@
 #include "MST.h"
 
 DSU::DSU(int n) : p(n), sz(n, 1) {
-    iota(p.begin(), p.end(), 0);
+    std::iota(p.begin(), p.end(), 0);
 }
 
 int DSU::get(int a){
@@ -40,7 +40,7 @@ void Kruskal::solve(){
 
     for (int i = 0; i < n; i++){
         auto [u, v, w] = g[i];
-        if (dsu.merge(dsu.get(u), dsu.get(v))){
+        if (dsu.merge(u, v)){
             edges.push_back({u, v, w});
             weight += w;
         }

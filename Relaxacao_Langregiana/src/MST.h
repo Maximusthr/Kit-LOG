@@ -4,13 +4,14 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
+#include <utility>
 #include <vector>
 
 struct Edge {
     int u, v;
     double w;
 
-    bool operator<(Edge const &p) const {
+    bool operator<(const Edge &p) const {
         return w < p.w;
     };
 };
